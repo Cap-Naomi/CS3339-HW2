@@ -1,41 +1,27 @@
 #include <iostream>
-#include <float.h>
 #include <cstdint>
 #include <cmath>
-#include <cstring>
 #include <iomanip>
+#include <bitset>
 using namespace std;
 
-void print_bits(int start, int length) // each section of IEEE format 
-{
-    for (int i = length - 1; i >= 0; i--) {
+void print_IEEE(float val){
 
-        if ((start >> i) & 1)
-            cout << "1";
-        else
-            cout << "0";
-    }
-}
+    uint32_t bits;
+    memcpy(&bits, &val, sizeof(bits));
+    bitset<32> b(bits);
 
-union my_float{
+    cout << b[31] << " ";  
 
-    float num;
-    struct
-    {
-        unsigned int mantissa : 23;
-        unsigned int exponent : 8;
-        unsigned int sign : 1;
+    for (int i = 30; i >= 23; i--) 
+        cout << b[i];
 
-    } raw;
-};
-
-void print_IEEE(my_float num)
-{
-    cout << num.raw.sign << " ";
-    print_bits(num.raw.exponent, 8);
     cout << " ";
-    print_bits(num.raw.mantissa, 23);
-    cout << "\n";
+
+    for (int i = 22; i >= 0; i--) 
+        cout << b[i];
+
+    cout << endl;
 }
 
 
@@ -46,22 +32,18 @@ int main(int argc, char* argv[]){
         return 1;
     }
 
-    float threshold; 
-    uint32_t bound_exp;
-    uint32_t counter_exp;
-    my_float bound, counter, threshold_bits;
+    float bound = stof(argv[1]);
+    float counter = stof(argv[2]);
 
-    bound.num = stof(argv[1]);
-    counter.num = stof(argv[2]);
+    float threshold; 
+    int bound_exp;
+    int counter_exp;
 
     // storing bit exponent of bound and counter 
-    memcpy(&bound_exp, &bound.num, sizeof(bound_exp));
+    memcpy(&bound_exp, &bound, sizeof(bound_exp));
     bound_exp = (bound_exp >> 23) & 0xFF;
-    memcpy(&counter_exp, &counter.num, sizeof(counter_exp));
+    memcpy(&counter_exp, &counter, sizeof(counter_exp));
     counter_exp = (counter_exp >> 23) & 0xFF;
-
-    threshold = pow(2, (counter_exp + 24) - 127);
-    threshold_bits.num = threshold;
 
     // overflow calculation complete
     cout << "\nLoop bound:   ";
@@ -69,12 +51,16 @@ int main(int argc, char* argv[]){
     cout << "Loop counter: ";
     print_IEEE(counter);
 
+    // int expDiff = bound_exp - counter_exp;
+
     if (bound_exp - counter_exp >= 24){ // mantissa has 24 bits of precision 
         cout << "\nWarning: Possible overflow!\n";
         cout << "Overflow threshold:\n";
+
+        threshold = pow(2, (counter_exp + 24) - 127);
         cout << "\t" << scientific << threshold << endl;
         cout << "\t";
-        print_IEEE(threshold_bits); 
+        print_IEEE(threshold); 
     }
     else{
         cout << "\nThere is no overflow!\n";
